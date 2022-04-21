@@ -18,8 +18,8 @@ public class Task implements TasksMBean {
         scheduledExecutorService = Executors.newScheduledThreadPool(1);
         status = "is running...";
     }
-    private void Task(String path1, String className) {
-        var path = Path.of(path1);
+    private void Task(String classpath, String className) {
+        var path = Path.of(classpath);
         try {
             ClassLoader loader = new URLClassLoader(new URL[] {path.toUri().toURL()});
             var clazz = loader.loadClass(className);
