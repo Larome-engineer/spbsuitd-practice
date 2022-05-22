@@ -11,6 +11,7 @@ CREATE TABLE manufacturers (
 CREATE TABLE products (
     product_id SERIAL PRIMARY KEY,
     product_name VARCHAR(255) NOT NULL,
+    product_price NUMERIC NOT NULL,
     manufacturer_id INTEGER, 
     category_id INTEGER,
     FOREIGN KEY (category_id) REFERENCES categories (category_id),
