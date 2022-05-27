@@ -1,15 +1,15 @@
 package JMX_Agent;
+
 import javax.management.*;
 import java.lang.management.ManagementFactory;
-public class AgentMain {
+
+public class Main {
     public static void main(String[] args) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException, InterruptedException {
-        Tasks process = new Tasks();
-        ManagementFactory.getPlatformMBeanServer().registerMBean(
-                process,
-                new ObjectName("JMX_Agent.Tasks:name=AgentMain")
+        TaskList process = new TaskList();
+        ManagementFactory.getPlatformMBeanServer().registerMBean(process, new ObjectName("TaskList:name=JMXAGENT")
         );
-        while (true) {
-            Thread.sleep(100000);
+        while (true){
+            Thread.sleep(10000);
         }
     }
 }

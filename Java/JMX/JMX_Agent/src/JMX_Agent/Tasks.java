@@ -1,43 +1,86 @@
 package JMX_Agent;
 
-import java.util.ArrayList;
-public class Tasks implements TasksMBean {
-    ArrayList<Task> tasks;
-    Tasks(){
-        tasks = new ArrayList<>();
+import agent.MainTransformer;
+import  javassist.*;
+
+import java.io.IOException;
+import java.lang.instrument.IllegalClassFormatException;
+import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Path;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class Tasks {
+
+    private String name;
+    private final String status;
+    private String classpath;
+    private String mainClass;
+    private Integer period;
+    public boolean isProfiled;
+    private final ScheduledExecutorService scheduledExecutorService;
+
+    public Tasks() {
+        name = "Untitled";
+        scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        status = "running";
+        isProfiled = false;
     }
-    @Override
-    public void submit(String name, String classpath, String mainClass, int period) {
-        Task task = new Task();
-        task.submit(name, classpath, mainClass, period);
-        tasks.add(task);
-        System.out.println( "Task " + name + " is started, waiting for instructions");
-    }
-    @Override
-    public String status(String name) {
-        boolean deleted = false;
-        String status = null;
-        for (Task task : tasks) {
-            if (task.getName().equals(name)) {
-                status = task.status(name);
-                deleted = true;
-            }
+
+    private  void Task(String taskpath, String className) {
+        var path = Path.of(taskpath);
+        try{
+            ClassLoader loader = new URLClassLoader(new URL[] {path.toUri().toURL()});
+            var clazz = loader.loadClass(className);
+            clazz.getMethod("run").invoke(null);
+        } catch (MalformedURLException | ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            this.cancel();
+            e.printStackTrace();
         }
-        if (!(deleted))
-            status = "No task found";
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void submit(String name, String classpath, String mainClass, int period) {
+        this.name=name;
+        this.mainClass = mainClass;
+        this.classpath = classpath;
+        this.period = period;
+        Runnable task = () -> Task(classpath,mainClass);
+        scheduledExecutorService.scheduleAtFixedRate(task, 1, period, TimeUnit.SECONDS);
+    }
+
+    public String status() {
         return status;
     }
-    @Override
-    public void cancel(String name) {
-        boolean deleted = false;
-        for (Task task : tasks) {
-            if (task.getName().equals(name)) {
-                task.cancel(name);
-                tasks.remove(task);
-                deleted = true;
-            }
-        }
-        if (!(deleted))
-            System.out.println("No task found");
+
+    public void cancel() {
+        this.scheduledExecutorService.shutdown();
+        System.out.println( this.name +  " is stopped");
+    }
+
+    public void startProfiling() throws NotFoundException, IOException, CannotCompileException, IllegalClassFormatException {
+        ClassPool classPool = ClassPool.getDefault();
+        CtClass ctClass = classPool.get(mainClass);
+        MainTransformer mainTransformer = new MainTransformer();
+        mainTransformer.transform(this.scheduledExecutorService.getClass().getClassLoader(),
+                this.scheduledExecutorService.getClass().getName(),
+                this.scheduledExecutorService.getClass(),
+                this.scheduledExecutorService.getClass().getProtectionDomain(),
+                ctClass.toBytecode());
+        this.isProfiled = true;
+    }
+
+    public void stopProfiling(){
+        this.scheduledExecutorService.shutdown();
+        Runnable task = () -> Task(this.classpath,this.mainClass);
+        scheduledExecutorService.scheduleAtFixedRate(task, 1, this.period, TimeUnit.SECONDS);
+        this.isProfiled = false;
     }
 }
