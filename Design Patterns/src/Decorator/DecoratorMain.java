@@ -1,10 +1,5 @@
 package Decorator;
-/*
- Объект, который предполагается использовать,
- выполняет основные функции.
- Однако может потребоваться добавить к нему некоторую дополнительную функциональность,
- которая будет выполняться до, после или даже вместо основной функциональности объекта.
- */
+
 interface InterfaceComponent {
     void doOperation();
 }
@@ -74,7 +69,7 @@ class DecoratorHello extends Decorator {
 class DecoderMain {
     public static void main (String... s) {
         Decorator c = new DecoratorHello(new DecoratorComma(new DecoratorSpace(new MainComponent())));
-        c.doOperation(); // Результат выполнения программы "Hello, World!"
-        c.newOperation(); // New hello operation
+        c.doOperation();
+        c.newOperation();
     }
 }
